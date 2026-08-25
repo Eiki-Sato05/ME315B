@@ -1,0 +1,108 @@
+---
+title: "lab02"
+format: pdf
+editor: visual
+---
+
+1 - As estatísticas suficientes são o número total de voos por grupo e o número de voos atrasados (ARRIVAL_DELAY \> 10) por grupo
+
+2-
+
+```{r}
+getStats = function(input, pos) {
+  input %>%
+    # a.
+    filter(AIRLINE %in% c("AA", "DL", "UA", "US")) %>%
+    # b.
+    drop_na(YEAR, MONTH, DAY, AIRLINE, ARRIVAL_DELAY) %>%
+    # c.
+    group_by(YEAR, MONTH, DAY, AIRLINE) %>%
+    # d.
+    summarise(
+      voos_totais = n(),
+      voos_atrasados = sum(ARRIVAL_DELAY > 10),
+      .groups = "drop"
+    )
+}
+```
+
+3 -
+
+```{r}
+library(readr)
+library(tidyr)
+library(dplyr)
+# a.
+colunas_interesse = cols_only(
+  YEAR = col_integer(),
+  MONTH = col_integer(),
+  DAY = col_integer(),
+  AIRLINE = col_character(),
+  ARRIVAL_DELAY = col_double()
+)
+# b.
+f_callback = DataFrameCallback$new(getStats)
+# c.
+dados_parciais = read_csv_chunked(
+  file = "flights.csv",
+  callback = f_callback,
+  chunk_size = 100000,
+  col_types = colunas_interesse
+)
+```
+
+4 -
+
+```{r}
+computeStats = function(df_parcial) {
+  df_parcial %>%
+    group_by(YEAR, MONTH, DAY, AIRLINE) %>%
+    summarise(
+      voos_totais = sum(voos_totais),
+      voos_atrasados = sum(voos_atrasados),
+      .groups = "drop"
+    ) %>%
+    # a.
+    mutate(
+      Cia = AIRLINE,
+      Data = as.Date(paste(YEAR, MONTH, DAY, sep = "-")),
+      Perc = voos_atrasados / voos_totais
+    ) %>%
+    # b.
+    select(Cia, Data, Perc)
+}
+
+stats_finais = computeStats(dados_parciais)
+```
+
+5 -
+
+```{r}
+# a.
+library(ggplot2)
+library(ggcal)
+# b.
+pal = scale_fill_gradient(low = "#4575b4", high = "#d73027", name = "% Atraso")
+# c.
+baseCalendario = function(stats, cia) {
+  sub_stats = stats %>% 
+    filter(Cia == cia)
+  
+  ggcal(sub_stats$Data, sub_stats$Perc)
+}
+# d.
+cAA = baseCalendario(stats_finais, "AA")
+cDL = baseCalendario(stats_finais, "DL")
+cUA = baseCalendario(stats_finais, "UA")
+cUS = baseCalendario(stats_finais, "US")
+# e.
+cAA + pal + ggtitle("Mapa de Calor - American Airlines (AA)")
+cDL + pal + ggtitle("Mapa de Calor - Delta Air Lines (DL)")
+cUA + pal + ggtitle("Mapa de Calor - United Airlines (UA)")
+cUS + pal + ggtitle("Mapa de Calor - US Airways (US)")
+```
+
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+```
