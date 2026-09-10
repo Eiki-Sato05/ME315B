@@ -1,0 +1,92 @@
+---
+title: "lab04"
+format: pdf
+editor: visual
+---
+
+## 1.
+
+```{r}
+library(readxl)
+library(tidyverse)
+```
+
+## 2.
+
+```{r}
+fname = "WDIEXCEL.xlsx"
+file.exists(fname)
+```
+
+## 3.
+
+```{r}
+countries = read_excel(fname, sheet = "Country")
+```
+
+## 4.
+
+```{r}
+paises_escolhidos = c("BRA", "USA", "RUS", "JPN", "DEU")
+countries = countries %>%
+  filter(`Country Code` %in% paises_escolhidos)
+```
+
+## 5.
+
+```{r}
+WDI = read_excel(fname, sheet = "Data")
+```
+
+## 6.
+
+```{r}
+WDI = WDI %>%
+  select(`Country Code`, `Indicator Code`, `1960`:`2018`)
+```
+
+## 7.
+
+```{r}
+WDI = WDI %>%
+  pivot_longer(cols = `1960`:`2018`, names_to = "YEAR", values_to = "VALUE")
+```
+
+## 8.
+
+```{r}
+class(WDI$YEAR)
+WDI = WDI %>%
+  mutate(YEAR = as.integer(YEAR))
+class(WDI$YEAR)
+```
+
+## 9.
+
+```{r}
+WDI = WDI %>%
+  filter(`Indicator Code` == "SP.DYN.CBRT.IN") %>%
+  inner_join(countries %>% select(`Country Code`, `Short Name`), by = "Country Code") %>%
+  select(`Country Code`, `Short Name`, YEAR, VALUE) %>%
+  rename(SP.DYN.CBRT.IN = VALUE)
+```
+
+## 10.
+
+```{r}
+WDI = WDI %>%
+  arrange(`Country Code`, YEAR)
+```
+
+## 11.
+
+```{r}
+ggplot(WDI, aes(x = YEAR, y = SP.DYN.CBRT.IN, color = `Short Name`)) +
+  geom_line() +
+  labs(x = "Ano", y = "Taxa de natalidade bruta", color = "País")
+```
+
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+```
