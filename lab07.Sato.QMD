@@ -1,0 +1,98 @@
+---
+title: "lab07"
+format: pdf
+editor: visual
+---
+
+## 1.
+
+```{r}
+library(RSQLite)
+
+conn <- dbConnect(SQLite(), "database (1).sqlite3")
+dbListTables(conn)
+```
+
+## 2.
+
+```{r}
+profs_stat <- dbGetQuery(conn, "SELECT DISTINCT i.id, i.name FROM instructors i
+  JOIN teachings t            ON t.instructor_id = i.id
+  JOIN sections s             ON s.uuid = t.section_uuid
+  JOIN subject_memberships sm ON sm.course_offering_uuid = s.course_offering_uuid
+  JOIN subjects su            ON su.code = sm.subject_code
+  WHERE su.abbreviation = 'STAT'
+  ORDER BY i.name
+")
+profs_stat
+
+dbGetQuery(conn, "SELECT COUNT(DISTINCT i.id) AS n_professores FROM instructors i
+  JOIN teachings t            ON t.instructor_id = i.id
+  JOIN sections s             ON s.uuid = t.section_uuid
+  JOIN subject_memberships sm ON sm.course_offering_uuid = s.course_offering_uuid
+  JOIN subjects su            ON su.code = sm.subject_code
+  WHERE su.abbreviation = 'STAT'
+")
+```
+
+## 3.
+
+```{r}
+base <- "SELECT
+    i.id   AS instructor_id,
+    i.name AS instructor,
+    c.uuid AS course_uuid,
+    c.name AS course,
+    c.number AS course_number,
+    (4.0*gd.a_count + 3.5*gd.ab_count + 3.0*gd.b_count + 2.5*gd.bc_count
+      + 2.0*gd.c_count + 1.0*gd.d_count + 0.0*gd.f_count) AS pontos,
+    (gd.a_count + gd.ab_count + gd.b_count + gd.bc_count
+      + gd.c_count + gd.d_count + gd.f_count) AS alunos
+  FROM grade_distributions gd
+  JOIN sections s             ON s.course_offering_uuid = gd.course_offering_uuid
+                             AND s.number = gd.section_number
+  JOIN teachings t            ON t.section_uuid = s.uuid
+  JOIN instructors i          ON i.id = t.instructor_id
+  JOIN course_offerings co    ON co.uuid = s.course_offering_uuid
+  JOIN courses c              ON c.uuid = co.course_uuid
+  JOIN subject_memberships sm ON sm.course_offering_uuid = co.uuid
+  JOIN subjects su            ON su.code = sm.subject_code
+  WHERE su.abbreviation = 'STAT'
+"
+
+gpa_prof <- dbGetQuery(conn, paste0("
+  SELECT instructor, SUM(pontos)/SUM(alunos) AS gpa, SUM(alunos) AS total_alunos
+  FROM (", base, ")
+  GROUP BY instructor_id, instructor
+  HAVING SUM(alunos) > 0
+  ORDER BY gpa ASC
+"))
+
+prof_mais_dificil <- head(gpa_prof, 1)
+prof_mais_facil   <- tail(gpa_prof, 1)
+
+gpa_disc <- dbGetQuery(conn, paste0("
+  SELECT course_number, course, SUM(pontos)/SUM(alunos) AS gpa, SUM(alunos) AS total_alunos
+  FROM (", base, ")
+  GROUP BY course_uuid, course, course_number
+  HAVING SUM(alunos) > 0
+  ORDER BY gpa ASC
+"))
+
+disc_mais_dificil <- head(gpa_disc, 1)
+disc_mais_facil   <- tail(gpa_disc, 1)
+
+prof_mais_dificil; prof_mais_facil
+disc_mais_dificil; disc_mais_facil
+```
+
+## 4.
+
+```{r}
+dbDisconnect(conn)
+```
+
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+```
