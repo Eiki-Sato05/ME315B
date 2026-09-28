@@ -1,0 +1,123 @@
+---
+title: "lista06"
+format: pdf
+editor: visual
+---
+
+```{r}
+library(DBI)
+library(RSQLite)
+con = dbConnect(RSQLite::SQLite(), "me315.sqlite")
+```
+
+## 1.
+
+```{sql connection=con}
+SELECT STATE, MIN(ACRES) AS MENOR_AREA FROM PRESERVE
+GROUP BY STATE
+```
+
+## 2.
+
+```{sql connection=con}
+SELECT STATE, MAX(ACRES) AS MAIOR_AREA FROM PRESERVE
+WHERE ACRES < 10000
+GROUP BY STATE
+```
+
+## 3.
+
+```{sql connection=con}
+SELECT STATE, MAX(ACRES) AS MAIOR_AREA FROM PRESERVE
+WHERE ACRES < 10000
+GROUP BY STATE
+ORDER BY MAIOR_AREA DESC
+```
+
+## 4.
+
+```{sql connection=con}
+SELECT STATE, MAX(ACRES) AS MAIOR_AREA FROM PRESERVE
+GROUP BY STATE
+HAVING MAIOR_AREA < 25000
+```
+
+## 5.
+
+```{sql connection=con}
+SELECT STATE, MIN(ACRES) AS MENOR_AREA FROM PRESERVE
+GROUP BY STATE
+HAVING MENOR_AREA < 100
+```
+
+## 6.
+
+```{sql connection=con}
+SELECT STATE, PNAME, MAX(ACRES) AS MAIOR_AREA FROM PRESERVE
+WHERE ACRES > 1000
+GROUP BY STATE
+HAVING MAIOR_AREA < 25000
+```
+
+## 7.
+
+```{sql connection=con}
+SELECT STATE, SUM(ACRES) AS TAMANHO_TOTAL FROM PRESERVE
+GROUP BY STATE
+HAVING TAMANHO_TOTAL BETWEEN 10000 AND 50000
+```
+
+## 8.
+
+```{sql connection=con}
+SELECT STATE, AVG(ACRES) AS MEDIA_ACRES FROM PRESERVE
+GROUP BY STATE
+ORDER BY AVG(ACRES) DESC
+LIMIT 1
+```
+
+## 9.
+
+```{sql connection=con}
+SELECT DNO, AVG(SALARY) AS SALARIO_MEDIO FROM EMPLOYEE
+GROUP BY DNO
+```
+
+## 10.
+
+```{sql connection=con}
+SELECT DNO, SUM(SALARY) AS SOMA_SALARIOS, MAX(SALARY) AS MAIOR_SALARIO, MIN(SALARY) AS MENOR_SALARIO FROM EMPLOYEE
+GROUP BY DNO
+```
+
+## 11.
+
+```{sql connection=con}
+SELECT DNO, COUNT(*) AS QTD_FUNCIONARIOS FROM EMPLOYEE
+WHERE DNO <> 40
+GROUP BY DNO;
+```
+
+## 12.
+
+```{sql connection=con}
+SELECT DNO, COUNT(*) AS QTD_FUNCIONARIOS FROM EMPLOYEE
+GROUP BY DNO
+HAVING COUNT(*) > 2
+```
+
+## 13.
+
+```{sql connection=con}
+SELECT STATE, SUM(ACRES) FROM PRESERVE
+GROUP BY STATE
+
+UNION ALL
+
+SELECT 'Total', SUM(ACRES) FROM PRESERVE
+```
+
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+```
