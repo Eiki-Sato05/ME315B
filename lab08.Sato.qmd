@@ -1,0 +1,80 @@
+---
+title: "lab08"
+format: pdf
+editor: visual
+---
+
+```{r}
+library(reticulate)
+py_require("polars")
+```
+
+```{python}
+import polars as pl
+
+kw = dict(separator="\t", null_values="\\N", quote_char=None)
+
+basics = pl.read_csv("title.basics0.tsv.gz",
+                     columns=["tconst", "titleType", "primaryTitle", "genres"], **kw)
+ratings = pl.read_csv("title.ratings.tsv.gz", **kw)
+principals = pl.read_csv("title.principals0.tsv.gz",
+                         columns=["tconst", "nconst", "category"], **kw)
+
+filmes = (
+    basics
+    .filter(pl.col("titleType") == "movie")
+    .drop("titleType")
+    .join(ratings, on="tconst", how="inner")
+)
+```
+
+## 1.
+
+```{python}
+top5 = (
+  filmes
+  .sort(["averageRating", "numVotes"], descending=[True, True])
+  .head(5)
+)
+print(top5)
+```
+
+## 2.
+
+```{python}
+genero_top = (
+  filmes
+  .filter(pl.col("averageRating") > 8)
+  .with_columns(pl.col("genres").str.split(","))
+  .explode("genres")
+  .drop_nulls("genres")
+  .group_by("genres")
+  .agg(pl.len().alias("n_filmes"))
+  .sort("n_filmes", descending=True)
+  .head(1)
+)
+print(genero_top)
+```
+
+## 3.
+
+```{python}
+bem_avaliados = filmes.filter(pl.col("averageRating") > 7.5).select("tconst")
+
+top_atores = (
+  principals
+  .filter(pl.col("category").is_in(["actor", "actress"]))
+  .join(bem_avaliados, on="tconst", how="semi")
+  .unique(["tconst", "nconst"])
+  .group_by("nconst")
+  .agg(pl.len().alias("n_filmes"))
+  .sort(["n_filmes", "nconst"], descending=[True, False])
+  .head(3)
+)
+print(top_atores)
+```
+
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+```
