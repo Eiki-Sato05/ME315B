@@ -1,0 +1,73 @@
+---
+title: "lab09"
+format: pdf
+editor: visual
+---
+
+```{r}
+library(reticulate)
+py_require(c("pandas", "numpy", "plotnine", "statsmodels", "scipy"))
+```
+
+## 1.
+
+```{python}
+import numpy as np
+import pandas as pd
+from plotnine import *
+from plotnine.data import diamonds
+df = diamonds.copy()
+```
+
+## 2.
+
+```{python}
+p1 = (ggplot(df, aes("carat", "price"))
+    + geom_point(alpha=0.05, size=0.8, stroke=0)
+    + geom_smooth(method="lowess", color="black", se=False)
+    + scale_x_log10(breaks=[0.2, 0.5, 1, 2, 5])
+    + scale_y_log10(breaks=[500, 1000, 2000, 5000, 10000, 20000], labels=lambda l: [f"US$ {round(v):,}" for v in l])
+    + labs(x="Peso (quilates, escala log)", y="Preço (escala log)", title="O preço cresce de forma regular com o peso")
+    + theme_minimal())
+p1.show()
+```
+
+Com quase 54 mil diamantes, os pontos se sobrepõem bastante, então usei transparência e pontos pequenos para que a densidade aparecesse. Na escala original a relação é curva e a dispersão aumenta junto com o peso, por isso passei os dois eixos para escala logarítmica, o que deixou a nuvem próxima de uma reta. Também acrescentei uma curva suavizada, rótulos com unidades e marcas de eixo em valores naturais. O resultado mostra uma associação positiva e forte (Spearman de 0,96): na escala log-log, cada 1% a mais de peso vem acompanhado de cerca de 1,7% a mais de preço. Há ainda um acúmulo de pontos em pesos redondos, como 0,5 e 1 quilate.
+
+## 3.
+
+```{python}
+p2 = (ggplot(df, aes("carat", "price"))
+    + geom_point(alpha=0.05, size=0.6, stroke=0)
+    + geom_smooth(method="lm", color="black")
+    + facet_wrap("~cut", nrow=1)
+    + scale_x_log10() + scale_y_log10()
+    + labs(x="Peso (quilates, escala log)", y="Preço (escala log)", title="Preço e peso em cada qualidade de corte")
+    + theme_minimal()
+    + theme(figure_size=(7, 3)))
+p2.show()
+```
+
+A tendência crescente aparece em todos os cortes, mas não é idêntica. As inclinações no ajuste log-log ficaram entre 1,66 e 1,74 para Good, Very Good, Premium e Ideal, enquanto o corte Fair teve crescimento mais lento (1,49) e maior dispersão. As diferenças entre os quatro melhores cortes são pequenas, o que sugere que o peso explica o preço de forma parecida em quase todos eles, e que o corte pesa menos do que se poderia esperar
+
+## 4.
+
+```{python}
+p3 = (ggplot(df, aes("carat", "price", color="clarity"))
+    + geom_smooth(method="lm", se=False, size=1)
+    + facet_grid("color ~ cut", labeller="label_both")
+    + scale_x_log10(breaks=[0.3, 1, 3])
+    + scale_y_log10(breaks=[500, 2000, 10000], labels=lambda l: [f"{round(v):,}" for v in l])
+    + scale_color_brewer(type="seq", palette="Spectral")
+    + labs(x="Peso (quilates, escala log)", y="Preço (escala log)", color="Clareza")
+    + theme_minimal(base_size=10)
+    + theme(figure_size=(7, 8.5), strip_text=element_text(size=8)))
+p3.show()
+```
+
+A maior dificuldade foi o número de combinações: das 280 possíveis, 276 existem nos dados, e mostrar todas com pontos deixa a figura ilegível. Além disso, os grupos são muito desiguais, com mediana de cerca de 90 diamantes e 30 combinações com menos de 10, o que torna as retas instáveis. Diamantes pesados também são raros nas classes inferiores, então o intervalo de peso muda de um painel para outro. Por isso resumi cada grupo por uma reta e usei a cor para a clareza. A relação segue crescente em todas as configurações, mas o nível do preço muda: ao incluir cada variável no modelo log-log, o R² sobe de 0,933 (só peso) para 0,937 com o corte, 0,945 com a cor e 0,965 com a clareza, chegando a 0,983 com as três. A clareza é, portanto, a que mais desloca o preço para um mesmo peso, e o corte a que menos o faz. As inclinações são parecidas entre os grupos, com exceção de Fair e I1, mais baixas, e as diferenças em combinações raras devem ser lidas com cautela, pois podem refletir só ruído amostral.
+
+```{r}
+Sys.setenv(TZ = "America/Sao_Paulo")
+Sys.time()
+```
